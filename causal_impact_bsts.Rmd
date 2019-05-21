@@ -1,0 +1,138 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+
+# This part of code is from: https://google.github.io/CausalImpact/CausalImpact.html
+library(CausalImpact)
+
+set.seed(1)
+x1 <- 100 + arima.sim(model = list(ar = 0.999), n = 100)
+y <- 1.2 * x1 + rnorm(100)
+y[71:100] <- y[71:100] + 10
+data <- cbind(y, x1)
+
+dim(data)
+head(data)
+
+matplot(data, type = "l")
+
+pre.period <- c(1, 70)
+post.period <- c(71, 100)
+
+impact <- CausalImpact(data, pre.period, post.period)
+
+plot(impact)
+
+time.points <- seq.Date(as.Date("2014-01-01"), by = 1, length.out = 100)
+data <- zoo(cbind(y, x1), time.points)
+head(data)
+
+pre.period <- as.Date(c("2014-01-01", "2014-03-11"))
+post.period <- as.Date(c("2014-03-12", "2014-04-10"))
+
+impact <- CausalImpact(data, pre.period, post.period)
+plot(impact)
+
+summary(impact)
+
+summary(impact, "report")
+
+impact$summary
+
+impact <- CausalImpact(data, pre.period, post.period, model.args = list(niter = 5000, nseasons = 7))
+
+post.period <- c(71, 100)
+post.period.response <- y[post.period[1] : post.period[2]]
+y[post.period[1] : post.period[2]] <- NA
+
+ss <- AddLocalLevel(list(), y)
+bsts.model_temp <- bsts(y ~ x1, ss, niter = 1000)
+
+impact <- CausalImpact(bsts.model = bsts.model_temp, post.period.response = post.period.response)
+
+plot(impact)
+summary(impact)
+summary(impact, "report")
+
+```
+
+```{r}
+# Building models using bsts
+
+ss <- AddLocalLevel(list(), y)
+ss <- AddSeasonal(ss, y, nseasons = 7)
+bsts.model_1 <- bsts(y ~ x1, ss, niter = 1000)
+
+impact <- CausalImpact(bsts.model = bsts.model_1, post.period.response = post.period.response)
+plot(impact)
+summary(impact)
+summary(impact, "report")
+```
+
+```{r}
+
+ss <- AddLocalLevel(list(), y)
+ss <- AddSeasonal(ss, y, nseasons = 7)
+bsts.model_2 <- bsts(y ~ x1, ss, niter = 1000, family="student")
+
+impact <- CausalImpact(bsts.model = bsts.model_2, post.period.response = post.period.response)
+plot(impact)
+summary(impact)
+summary(impact, "report")
+
+```
+
+```{r}
+ss <- AddLocalLinearTrend(list(), y)
+ss <- AddSeasonal(ss, y, nseasons = 7)
+bsts.model_3 <- bsts(y ~ x1, ss, niter = 1000, family="student")
+
+impact <- CausalImpact(bsts.model = bsts.model_3, post.period.response = post.period.response)
+plot(impact)
+summary(impact)
+summary(impact, "report")
+```
+
+```{r}
+ss <- AddStudentLocalLinearTrend(list(), y)
+ss <- AddSeasonal(ss, y, nseasons = 7)
+bsts.model_4 <- bsts(y ~ x1, ss, niter = 1000, family="student")
+
+impact <- CausalImpact(bsts.model = bsts.model_4, post.period.response = post.period.response)
+plot(impact)
+summary(impact)
+summary(impact, "report")
+```
+
+```{r}
+ss <- AddSemilocalLinearTrend(list(), y)
+ss <- AddSeasonal(ss, y, nseasons = 7)
+bsts.model_5 <- bsts(y ~ x1, ss, niter = 1000, family="student")
+
+impact <- CausalImpact(bsts.model = bsts.model_5, post.period.response = post.period.response)
+plot(impact)
+summary(impact)
+summary(impact, "report")
+```
+
+```{r}
+CompareBstsModels(list("Model_1" = bsts.model_1,
+                       "Model_2" = bsts.model_2,
+                       "Model_3" = bsts.model_3,
+                       "Model_4" = bsts.model_4,
+                       "Model_5" = bsts.model_5),
+                  colors = c("black","red", "blue","green","yellow"))
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
